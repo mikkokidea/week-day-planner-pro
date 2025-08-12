@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
+import { CheckCircle } from "lucide-react";
 import { getISOWeek, format } from "date-fns";
 
 interface WeekPlanData { weekKey: string; goals: string[]; updatedAt: string }
@@ -14,6 +16,7 @@ interface DailyPlanData {
   projects: { name: string; tasks: string[] }[];
   otherWork: string[];
   otherTasks: string[];
+  completedTasks: string[];
   createdAt: string;
 }
 
@@ -67,6 +70,7 @@ const DailyPlan = () => {
   );
   const [otherWork, setOtherWork] = useState<string[]>([]);
   const [otherTasks, setOtherTasks] = useState<string[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<string[]>([]);
   const [prevOpen, setPrevOpen] = useState(false);
   const [prevPlan, setPrevPlan] = useState<DailyPlanData | null>(null);
 
@@ -77,6 +81,7 @@ const DailyPlan = () => {
       setProjects(existing.projects);
       setOtherWork(existing.otherWork);
       setOtherTasks(existing.otherTasks);
+      setCompletedTasks(existing.completedTasks || []);
     }
   }, [todayKey]);
 
@@ -101,10 +106,19 @@ const DailyPlan = () => {
       projects,
       otherWork,
       otherTasks,
+      completedTasks,
       createdAt: new Date().toISOString(),
     };
     saveDailyPlan(data);
     toast({ title: "Päiväsuunnitelma tallennettu", description: format(new Date(), "d.M.yyyy") });
+  };
+
+  const toggleTaskCompletion = (task: string) => {
+    setCompletedTasks(prev => 
+      prev.includes(task) 
+        ? prev.filter(t => t !== task)
+        : [...prev, task]
+    );
   };
 
   const showPrev = () => {
@@ -131,6 +145,69 @@ const DailyPlan = () => {
               <Button asChild variant="secondary">
                 <a href="/viikko">Avaa viikkosuunnittelu</a>
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Task Overview List */}
+      {allWorkTasks.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Päivän työtehtävät</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {/* Important tasks first */}
+              {allWorkTasks.slice(0, 3).map((task, idx) => {
+                const isCompleted = completedTasks.includes(task);
+                return (
+                  <div key={`important-${idx}`} className="flex items-center space-x-3 p-2 rounded-lg bg-primary/5">
+                    <Checkbox 
+                      checked={isCompleted}
+                      onCheckedChange={() => toggleTaskCompletion(task)}
+                    />
+                    <span className={`font-semibold flex-1 ${isCompleted ? 'line-through opacity-50' : ''}`}>
+                      {task}
+                    </span>
+                    {isCompleted && <CheckCircle className="w-4 h-4 text-green-600" />}
+                  </div>
+                );
+              })}
+              
+              {/* Other tasks */}
+              {allWorkTasks.slice(3).map((task, idx) => {
+                const isCompleted = completedTasks.includes(task);
+                return (
+                  <div key={`other-${idx}`} className="flex items-center space-x-3 p-2">
+                    <Checkbox 
+                      checked={isCompleted}
+                      onCheckedChange={() => toggleTaskCompletion(task)}
+                    />
+                    <span className={`flex-1 ${isCompleted ? 'line-through opacity-50' : ''}`}>
+                      {task}
+                    </span>
+                    {isCompleted && <CheckCircle className="w-4 h-4 text-green-600" />}
+                  </div>
+                );
+              })}
+              
+              {/* Other work tasks */}
+              {otherWork.map((task, idx) => {
+                const isCompleted = completedTasks.includes(task);
+                return (
+                  <div key={`work-${idx}`} className="flex items-center space-x-3 p-2">
+                    <Checkbox 
+                      checked={isCompleted}
+                      onCheckedChange={() => toggleTaskCompletion(task)}
+                    />
+                    <span className={`flex-1 ${isCompleted ? 'line-through opacity-50' : ''}`}>
+                      {task}
+                    </span>
+                    {isCompleted && <CheckCircle className="w-4 h-4 text-green-600" />}
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
