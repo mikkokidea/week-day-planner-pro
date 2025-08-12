@@ -270,21 +270,6 @@ const DailyPlan = () => {
         </CardContent>
       </Card>
 
-      {/* Aggregated preview for bolding first 3 work tasks */}
-      {!!allWorkTasks.length && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Työtehtävät yhteensä</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc pl-5 space-y-1">
-              {allWorkTasks.map((t, idx) => (
-                <li key={idx} className={idx < 3 ? "font-semibold" : undefined}>{t}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Previous dialog */}
       <Dialog open={prevOpen} onOpenChange={setPrevOpen}>
