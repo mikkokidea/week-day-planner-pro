@@ -127,7 +127,7 @@ const DailyPlan = () => {
     setPrevOpen(true);
   };
 
-  const allWorkTasks = projects.flatMap((p) => p.tasks);
+  const allWorkTasks = [...projects.flatMap((p) => p.tasks), ...otherWork];
 
   return (
     <div className="container mx-auto max-w-md px-4 py-6 space-y-6">
@@ -150,15 +150,20 @@ const DailyPlan = () => {
         </Card>
       )}
 
-      {/* Task Overview List */}
-      {allWorkTasks.length > 0 && (
+      {/* Task Overview List - shows all work tasks */}
+      {(allWorkTasks.length > 0 || otherWork.length > 0) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Päivän työtehtävät</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {/* Important tasks first */}
+              {/* Show message if no tasks yet */}
+              {allWorkTasks.length === 0 && otherWork.length === 0 && (
+                <p className="text-muted-foreground text-sm">Lisää tehtäviä alla olevista kentistä, niin ne näkyvät tässä listassa.</p>
+              )}
+              
+              {/* Important project tasks first */}
               {allWorkTasks.slice(0, 3).map((task, idx) => {
                 const isCompleted = completedTasks.includes(task);
                 return (
@@ -175,8 +180,8 @@ const DailyPlan = () => {
                 );
               })}
               
-              {/* Other tasks */}
-              {allWorkTasks.slice(3).map((task, idx) => {
+              {/* Other project tasks */}
+              {projects.flatMap((p) => p.tasks).slice(3).map((task, idx) => {
                 const isCompleted = completedTasks.includes(task);
                 return (
                   <div key={`other-${idx}`} className="flex items-center space-x-3 p-2">
