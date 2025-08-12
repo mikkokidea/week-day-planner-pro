@@ -66,6 +66,10 @@ const WeekPlan = () => {
         <link rel="canonical" href="/viikko" />
       </Helmet>
 
+      <div className="mb-4">
+        <Button onClick={onSave} variant="hero" className="w-full">Tallenna viikko</Button>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Viikon 3 tärkeintä tavoitetta</CardTitle>
