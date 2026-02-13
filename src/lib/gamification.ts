@@ -2,6 +2,7 @@ import { format, differenceInCalendarDays, parseISO } from "date-fns";
 import type {
   DailyTask,
   GameState,
+  Habit,
   LevelInfo,
   PointsBreakdown,
   Reward,
@@ -53,32 +54,39 @@ export function calculateLevelInfo(lifetimePoints: number): LevelInfo {
 
 export function calculateDailyPoints(
   tasks: DailyTask[],
-  streak: number
+  streak: number,
+  completedHabitCount = 0,
+  totalHabitCount = 0
 ): PointsBreakdown {
-  if (tasks.length === 0) {
-    return { taskPoints: 0, topTaskBonus: 0, allCompleteBonus: 0, streakMultiplier: 1, total: 0 };
+  if (tasks.length === 0 && totalHabitCount === 0) {
+    return { taskPoints: 0, mitBonus: 0, frogBonus: 0, habitPoints: 0, allCompleteBonus: 0, streakMultiplier: 1, total: 0 };
   }
 
   const completedTasks = tasks.filter((t) => t.completed);
-  const allCompleted = completedTasks.length === tasks.length && tasks.length > 0;
+  const allTasksCompleted = tasks.length > 0 && completedTasks.length === tasks.length;
 
-  // Base points: 10 per completed task
+  // Base: 10p per completed task
   const taskPoints = completedTasks.length * 10;
 
-  // Top 3 bonus: extra 15 per completed top task (total 25)
-  const top3 = tasks.slice(0, 3);
-  const topTaskBonus = top3.filter((t) => t.completed).length * 15;
+  // MIT bonus: +15p extra per completed MIT (total 25p)
+  const mitBonus = completedTasks.filter((t) => t.isMIT).length * 15;
 
-  // All complete bonus
-  const allCompleteBonus = allCompleted ? 50 : 0;
+  // Frog bonus: +10p extra per completed frog task (total 20p)
+  const frogBonus = completedTasks.filter((t) => t.pillar === "frog").length * 10;
+
+  // Habit points: 5p per completed habit
+  const habitPoints = completedHabitCount * 5;
+
+  // All complete bonus (tasks only)
+  const allCompleteBonus = allTasksCompleted ? 50 : 0;
 
   // Streak multiplier: +10% per day, max 2x
   const streakMultiplier = Math.min(1 + streak * 0.1, 2);
 
-  const baseTotal = taskPoints + topTaskBonus + allCompleteBonus;
+  const baseTotal = taskPoints + mitBonus + frogBonus + habitPoints + allCompleteBonus;
   const total = Math.round(baseTotal * streakMultiplier);
 
-  return { taskPoints, topTaskBonus, allCompleteBonus, streakMultiplier, total };
+  return { taskPoints, mitBonus, frogBonus, habitPoints, allCompleteBonus, streakMultiplier, total };
 }
 
 // ── Streak ─────────────────────────────────────────────────────────
@@ -106,7 +114,6 @@ export function updateStreak(
     return { currentStreak: currentStreak + 1, lastActiveDate: todayDate };
   }
 
-  // Streak broken
   return { currentStreak: 1, lastActiveDate: todayDate };
 }
 
@@ -117,9 +124,7 @@ export function claimReward(
   reward: Reward
 ): GameState | null {
   if (reward.isMilestone) {
-    // Milestones don't cost points, just need lifetime threshold
     if (gameState.lifetimePoints < reward.pointCost) return null;
-    // Check if already claimed
     if (gameState.claimedRewards.some((r) => r.rewardId === reward.id)) return null;
   } else {
     if (gameState.currentPoints < reward.pointCost) return null;
@@ -150,8 +155,6 @@ export function getNextReward(
   const affordable = rewards
     .filter((r) => !r.isMilestone)
     .sort((a, b) => a.pointCost - b.pointCost);
-
-  // Find the cheapest reward the user can't yet afford, or the cheapest they can
   const nextUp = affordable.find((r) => r.pointCost > currentPoints);
   return nextUp ?? affordable[affordable.length - 1] ?? null;
 }
