@@ -14,15 +14,16 @@ export default function PointsBadge({ points, size = "md", className }: PointsBa
         "inline-flex items-center gap-1.5 rounded-full bg-gold/15 text-gold font-bold",
         size === "sm" && "text-xs px-2 py-0.5",
         size === "md" && "text-sm px-3 py-1",
-        size === "lg" && "text-lg px-4 py-1.5",
+        size === "lg" && "font-display text-4xl font-extrabold px-4 py-1.5",
         className
       )}
     >
-      <Coins className={cn(
-        size === "sm" && "w-3 h-3",
-        size === "md" && "w-4 h-4",
-        size === "lg" && "w-5 h-5"
-      )} />
+      {size !== "lg" && (
+        <Coins className={cn(
+          size === "sm" && "w-3 h-3",
+          size === "md" && "w-4 h-4"
+        )} />
+      )}
       {points}p
     </div>
   );

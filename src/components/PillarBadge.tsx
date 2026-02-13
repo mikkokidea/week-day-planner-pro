@@ -7,12 +7,12 @@ interface PillarBadgeProps {
   className?: string;
 }
 
-const pillarBg: Record<PillarId, string> = {
-  sales: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  automation: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  strategy: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
-  frog: "bg-green-500/15 text-green-700 dark:text-green-400",
-  life: "bg-rose-500/15 text-rose-700 dark:text-rose-400",
+const pillarStyles: Record<PillarId, string> = {
+  sales: "bg-pillar-sales/[0.08] border-pillar-sales/20 text-pillar-sales",
+  automation: "bg-pillar-automation/[0.08] border-pillar-automation/20 text-pillar-automation",
+  strategy: "bg-pillar-strategy/[0.08] border-pillar-strategy/20 text-pillar-strategy",
+  frog: "bg-pillar-frog/[0.08] border-pillar-frog/20 text-pillar-frog",
+  life: "bg-pillar-life/[0.08] border-pillar-life/20 text-pillar-life",
 };
 
 export default function PillarBadge({ pillar, size = "sm", className }: PillarBadgeProps) {
@@ -20,8 +20,8 @@ export default function PillarBadge({ pillar, size = "sm", className }: PillarBa
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full font-medium",
-        pillarBg[pillar],
+        "inline-flex items-center gap-1 rounded-full font-medium border",
+        pillarStyles[pillar],
         size === "sm" ? "px-2 py-0.5 text-[10px]" : "px-3 py-1 text-xs",
         className
       )}

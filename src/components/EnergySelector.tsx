@@ -1,10 +1,10 @@
 import type { EnergyLevel } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const LEVELS: { value: EnergyLevel; emoji: string; label: string; hint: string }[] = [
-  { value: "high", emoji: "⚡", label: "Korkea", hint: "Isot projektit ja sammakot" },
-  { value: "normal", emoji: "☀️", label: "Normaali", hint: "Tavallinen työpäivä" },
-  { value: "low", emoji: "🌙", label: "Matala", hint: "Kevyet tehtävät ja arki" },
+const LEVELS: { value: EnergyLevel; emoji: string; label: string; hint: string; activeClass: string }[] = [
+  { value: "high", emoji: "⚡", label: "Korkea", hint: "Isot projektit ja sammakot", activeClass: "bg-amber-500/[0.1] border-amber-500/30 text-amber-500" },
+  { value: "normal", emoji: "☀️", label: "Normaali", hint: "Tavallinen työpäivä", activeClass: "bg-emerald-500/[0.1] border-emerald-500/30 text-emerald-500" },
+  { value: "low", emoji: "🌙", label: "Matala", hint: "Kevyet tehtävät ja arki", activeClass: "bg-red-500/[0.1] border-red-500/30 text-red-500" },
 ];
 
 interface EnergySelectorProps {
@@ -14,20 +14,20 @@ interface EnergySelectorProps {
 
 export default function EnergySelector({ value, onChange }: EnergySelectorProps) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-1.5">
       {LEVELS.map((l) => (
         <button
           key={l.value}
           onClick={() => onChange(l.value)}
           className={cn(
-            "flex-1 flex flex-col items-center gap-0.5 rounded-xl py-2 px-1 text-xs transition-all border",
+            "flex-1 flex flex-col items-center gap-0.5 rounded-md py-2 px-1 text-xs transition-all border",
             value === l.value
-              ? "border-[hsl(var(--brand))] bg-[hsl(var(--brand)/0.08)] font-semibold"
-              : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted"
+              ? l.activeClass + " font-medium"
+              : "bg-transparent border-border text-muted-foreground"
           )}
         >
-          <span className="text-lg">{l.emoji}</span>
-          <span>{l.label}</span>
+          <span className="text-sm">{l.emoji}</span>
+          <span className="text-[10px] font-medium">{l.hint}</span>
         </button>
       ))}
     </div>
