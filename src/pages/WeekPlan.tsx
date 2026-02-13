@@ -104,7 +104,7 @@ export default function WeekPlan() {
             const progress = linkedTasks.length > 0 ? (done / linkedTasks.length) * 100 : 0;
 
             return (
-              <Card key={goal.id} className="animate-slide-up rounded-2xl" style={{ animationDelay: `${index * 0.05}s` }}>
+              <Card key={goal.id} className="rounded-2xl">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <div className="flex-1">

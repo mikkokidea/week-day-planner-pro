@@ -65,15 +65,14 @@ export default function TabbedTaskList({ tasks, onToggle, onRemove, editable = t
           </p>
         ) : (
           <div className="space-y-0.5">
-            {filteredTasks.map((task, index) => (
-              <div key={task.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s` }}>
-                <TaskRow
-                  task={task}
-                  onToggle={() => onToggle(task.id)}
-                  onRemove={() => onRemove(task.id)}
-                  editable={editable}
-                />
-              </div>
+            {filteredTasks.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                onToggle={() => onToggle(task.id)}
+                onRemove={() => onRemove(task.id)}
+                editable={editable}
+              />
             ))}
           </div>
         )}
