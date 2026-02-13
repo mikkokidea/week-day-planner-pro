@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { getDayKey, loadDailyPlan, saveDailyPlan } from "@/lib/storage";
-import type { DailyPlanData, DailyTask } from "@/lib/types";
+import type { DailyPlanData, DailyTask, EnergyLevel } from "@/lib/types";
+import type { PillarId } from "@/lib/pillars";
 
 export function useDailyPlan(date: Date = new Date()) {
   const dayKey = useMemo(() => getDayKey(date), [date]);
@@ -11,12 +12,14 @@ export function useDailyPlan(date: Date = new Date()) {
   );
 
   const [tasks, setTasks] = useState<DailyTask[]>([]);
+  const [energy, setEnergy] = useState<EnergyLevel>("normal");
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Load on key change
   useEffect(() => {
     const existing = loadDailyPlan(dayKey);
     setTasks(existing?.tasks ?? []);
+    setEnergy(existing?.energy ?? "normal");
   }, [dayKey]);
 
   // Debounced auto-save
@@ -26,6 +29,7 @@ export function useDailyPlan(date: Date = new Date()) {
       const data: DailyPlanData = {
         dateKey: dayKey,
         tasks,
+        energy,
         createdAt: new Date().toISOString(),
       };
       saveDailyPlan(data);
@@ -33,10 +37,10 @@ export function useDailyPlan(date: Date = new Date()) {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [tasks, dayKey]);
+  }, [tasks, dayKey, energy]);
 
   const addTask = useCallback(
-    (text: string, category: DailyTask["category"], projectIndex?: number) => {
+    (text: string, pillar: PillarId, isMIT = false, goalId?: string) => {
       const trimmed = text.trim();
       if (!trimmed) return;
       setTasks((prev) => [
@@ -45,8 +49,9 @@ export function useDailyPlan(date: Date = new Date()) {
           id: crypto.randomUUID(),
           text: trimmed,
           completed: false,
-          category,
-          projectIndex,
+          pillar,
+          isMIT,
+          goalId,
         },
       ]);
     },
@@ -63,18 +68,16 @@ export function useDailyPlan(date: Date = new Date()) {
     );
   }, []);
 
-  const projectTasks = useMemo(
-    () => tasks.filter((t) => t.category === "project"),
+  const mitTasks = useMemo(
+    () => tasks.filter((t) => t.isMIT),
     [tasks]
   );
-  const workTasks = useMemo(
-    () => tasks.filter((t) => t.category === "work"),
+
+  const tasksByPillar = useCallback(
+    (pillar: PillarId) => tasks.filter((t) => t.pillar === pillar),
     [tasks]
   );
-  const personalTasks = useMemo(
-    () => tasks.filter((t) => t.category === "personal"),
-    [tasks]
-  );
+
   const completedCount = useMemo(
     () => tasks.filter((t) => t.completed).length,
     [tasks]
@@ -84,12 +87,13 @@ export function useDailyPlan(date: Date = new Date()) {
     tasks,
     dayKey,
     isToday,
+    energy,
+    setEnergy,
     addTask,
     removeTask,
     toggleTask,
-    projectTasks,
-    workTasks,
-    personalTasks,
+    mitTasks,
+    tasksByPillar,
     completedCount,
   };
 }

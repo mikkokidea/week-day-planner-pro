@@ -1,12 +1,11 @@
 import { NavLink } from "react-router-dom";
-import { Home, Calendar, CheckSquare, Trophy } from "lucide-react";
+import { LayoutDashboard, Calendar, Trophy } from "lucide-react";
 import { useGame } from "@/contexts/GameContext";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { to: "/", label: "Koti", icon: Home },
+  { to: "/", label: "Tänään", icon: LayoutDashboard },
   { to: "/viikko", label: "Viikko", icon: Calendar },
-  { to: "/paiva", label: "Päivä", icon: CheckSquare },
   { to: "/palkinnot", label: "Palkinnot", icon: Trophy },
 ] as const;
 

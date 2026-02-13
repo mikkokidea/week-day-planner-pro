@@ -1,23 +1,51 @@
+import type { PillarId } from "./pillars";
+
 // ── Types ──────────────────────────────────────────────────────────
+
+export type EnergyLevel = "high" | "normal" | "low";
 
 export interface DailyTask {
   id: string;
   text: string;
   completed: boolean;
-  category: "project" | "work" | "personal";
-  projectIndex?: number; // 0-2, links to week goal index
+  pillar: PillarId;
+  isMIT: boolean;
+  goalId?: string; // links to WeekGoal
+  // Legacy compat
+  category?: "project" | "work" | "personal";
+  projectIndex?: number;
 }
 
 export interface DailyPlanData {
   dateKey: string; // "dailyPlan-YYYY-MM-DD"
   tasks: DailyTask[];
+  energy?: EnergyLevel;
   createdAt: string;
+}
+
+export interface WeekGoal {
+  id: string;
+  text: string;
+  pillar: PillarId;
 }
 
 export interface WeekPlanData {
   weekKey: string; // "weekPlan-YYYY-Www"
-  goals: string[]; // always 3
+  goals: WeekGoal[] | string[]; // string[] for legacy compat
   updatedAt: string;
+}
+
+export interface Habit {
+  id: string;
+  name: string;
+  emoji: string;
+  points: number;
+  days: number[]; // 0=Sun, 1=Mon, ...6=Sat
+}
+
+export interface HabitCompletionData {
+  dateKey: string; // "habits-YYYY-MM-DD"
+  completed: string[]; // habit ids
 }
 
 export interface DailyPointsEntry {
@@ -40,18 +68,19 @@ export interface Reward {
   name: string;
   emoji: string;
   pointCost: number;
-  category: "pieni" | "keskikokoinen" | "suuri";
-  isMilestone: boolean; // milestone = lifetime-based, not spent
+  category?: "pieni" | "keskikokoinen" | "suuri";
+  isMilestone: boolean;
 }
 
 export interface GameState {
   currentPoints: number;
   lifetimePoints: number;
   currentStreak: number;
-  lastActiveDate: string; // YYYY-MM-DD
+  lastActiveDate: string;
   claimedRewards: ClaimedReward[];
   dailyPointsLog: DailyPointsEntry[];
   rewards: Reward[];
+  habits: Habit[];
 }
 
 export interface LevelInfo {
@@ -65,7 +94,9 @@ export interface LevelInfo {
 
 export interface PointsBreakdown {
   taskPoints: number;
-  topTaskBonus: number;
+  mitBonus: number;
+  frogBonus: number;
+  habitPoints: number;
   allCompleteBonus: number;
   streakMultiplier: number;
   total: number;

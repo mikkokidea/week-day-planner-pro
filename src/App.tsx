@@ -7,9 +7,8 @@ import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "next-themes";
 import { GameProvider } from "@/contexts/GameContext";
 import BottomNav from "@/components/BottomNav";
-import Index from "./pages/Index";
+import DashboardPage from "./pages/DashboardPage";
 import WeekPlan from "./pages/WeekPlan";
-import DailyPlan from "./pages/DailyPlan";
 import Rewards from "./pages/Rewards";
 import NotFound from "./pages/NotFound";
 
@@ -27,9 +26,8 @@ const App = () => (
               <div className="min-h-screen flex flex-col">
                 <main className="flex-1">
                   <Routes>
-                    <Route path="/" element={<Index />} />
+                    <Route path="/" element={<DashboardPage />} />
                     <Route path="/viikko" element={<WeekPlan />} />
-                    <Route path="/paiva" element={<DailyPlan />} />
                     <Route path="/palkinnot" element={<Rewards />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

@@ -1,51 +1,43 @@
-import { useMemo } from "react";
+import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, Save } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import PageContainer from "@/components/PageContainer";
+import PillarBadge from "@/components/PillarBadge";
+import AddGoalSheet from "@/components/AddGoalSheet";
 import { useWeekPlan } from "@/hooks/useWeekPlan";
 import { useDailyPlan } from "@/hooks/useDailyPlan";
+import type { WeekGoal } from "@/lib/types";
+import { PILLARS } from "@/lib/pillars";
 
-const WeekPlan = () => {
+export default function WeekPlan() {
   const {
     weekLabel,
     isCurrentWeek,
     goals,
-    handleChange,
-    save,
+    addGoal,
+    removeGoal,
     goToPreviousWeek,
     goToNextWeek,
     goToCurrentWeek,
   } = useWeekPlan();
 
+  const [goalSheetOpen, setGoalSheetOpen] = useState(false);
   const { tasks } = useDailyPlan();
 
-  const goalProgress = useMemo(() => {
-    return goals.map((_, i) => {
-      const projectTasks = tasks.filter(
-        (t) => t.category === "project" && t.projectIndex === i
-      );
-      const done = projectTasks.filter((t) => t.completed).length;
-      return { done, total: projectTasks.length };
-    });
-  }, [goals, tasks]);
-
-  const handleSave = () => {
-    save();
-    toast({
-      title: "Viikkosuunnitelma tallennettu",
-      description: weekLabel,
-    });
-  };
+  // Pillar task counts
+  const pillarCounts = PILLARS.map((p) => ({
+    ...p,
+    total: tasks.filter((t) => t.pillar === p.id).length,
+    done: tasks.filter((t) => t.pillar === p.id && t.completed).length,
+  }));
 
   return (
     <PageContainer>
       <Helmet>
-        <title>Viikkosuunnittelu – Pelillistetty Suunnittelija</title>
+        <title>Viikko – CEO Planner Pro</title>
       </Helmet>
 
       {/* Week navigation */}
@@ -61,9 +53,7 @@ const WeekPlan = () => {
             {weekLabel}
           </button>
           {!isCurrentWeek && (
-            <p className="text-xs text-muted-foreground">
-              Paina viikkoa palataksesi nykyiseen
-            </p>
+            <p className="text-xs text-muted-foreground">Paina palataksesi nykyiseen</p>
           )}
         </div>
         <Button variant="ghost" size="icon" onClick={goToNextWeek}>
@@ -71,56 +61,82 @@ const WeekPlan = () => {
         </Button>
       </div>
 
-      {/* Goals */}
-      <div className="space-y-4">
-        {goals.map((goal, i) => (
-          <Card key={i} className="animate-slide-up" style={{ animationDelay: `${i * 0.05}s` }}>
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <span className="w-8 h-8 rounded-full bg-gradient-to-r from-[hsl(var(--brand))] to-[hsl(var(--brand-2))] text-white font-bold flex items-center justify-center text-sm flex-shrink-0">
-                  {i + 1}
-                </span>
-                <Input
-                  value={goal}
-                  onChange={(e) => handleChange(i, e.target.value)}
-                  placeholder={`Viikon tavoite ${i + 1}`}
-                  className="text-base font-medium"
-                  readOnly={!isCurrentWeek}
-                />
-              </div>
-
-              {/* Progress for this goal */}
-              {isCurrentWeek && goalProgress[i] && goalProgress[i].total > 0 && (
-                <div className="ml-11 space-y-1">
-                  <Progress
-                    value={
-                      (goalProgress[i].done / goalProgress[i].total) * 100
-                    }
-                    className="h-1.5"
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    {goalProgress[i].done}/{goalProgress[i].total} tehtävää
-                    valmiina
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+      {/* Pillar overview */}
+      <div className="grid grid-cols-5 gap-2 mb-5">
+        {pillarCounts.map((p) => (
+          <div key={p.id} className="flex flex-col items-center gap-1 text-center">
+            <span className="text-lg">{p.emoji}</span>
+            <span className="text-[10px] text-muted-foreground">{p.name}</span>
+            {p.total > 0 && (
+              <span className="text-[10px] font-medium">{p.done}/{p.total}</span>
+            )}
+          </div>
         ))}
       </div>
 
-      {/* Save button */}
-      {isCurrentWeek && (
-        <Button
-          onClick={handleSave}
-          className="w-full mt-5 bg-gradient-to-r from-[hsl(var(--brand))] to-[hsl(var(--brand-2))] text-white hover:opacity-90"
-        >
-          <Save className="w-4 h-4 mr-2" />
-          Tallenna viikko
-        </Button>
+      {/* Goals */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-sm">Viikkotavoitteet</h2>
+        {isCurrentWeek && (
+          <Button variant="ghost" size="sm" onClick={() => setGoalSheetOpen(true)} className="text-xs h-7">
+            <Plus className="w-3.5 h-3.5 mr-1" /> Lisää
+          </Button>
+        )}
+      </div>
+
+      {goals.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <p className="text-sm">Ei viikkotavoitteita.</p>
+          {isCurrentWeek && (
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => setGoalSheetOpen(true)}>
+              <Plus className="w-3.5 h-3.5 mr-1" /> Lisää tavoite
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {goals.map((goal: WeekGoal) => {
+            const linkedTasks = tasks.filter((t) => t.goalId === goal.id);
+            const done = linkedTasks.filter((t) => t.completed).length;
+            const progress = linkedTasks.length > 0 ? (done / linkedTasks.length) * 100 : 0;
+
+            return (
+              <Card key={goal.id} className="animate-slide-up">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <PillarBadge pillar={goal.pillar} size="sm" />
+                      </div>
+                      <p className="text-sm font-medium">{goal.text}</p>
+                      {linkedTasks.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          <Progress value={progress} className="h-1.5" />
+                          <p className="text-[10px] text-muted-foreground">
+                            {done}/{linkedTasks.length} tehtävää
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {isCurrentWeek && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeGoal(goal.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
+
+      <AddGoalSheet open={goalSheetOpen} onOpenChange={setGoalSheetOpen} onAdd={addGoal} />
     </PageContainer>
   );
-};
-
-export default WeekPlan;
+}

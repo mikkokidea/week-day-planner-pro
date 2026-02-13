@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import {
-  loadGameState,
-  saveGameState,
-} from "@/lib/storage";
+import { loadGameState, saveGameState } from "@/lib/storage";
 import {
   calculateDailyPoints,
   calculateLevelInfo,
@@ -15,6 +12,7 @@ import {
 import type {
   DailyTask,
   GameState,
+  Habit,
   LevelInfo,
   PointsBreakdown,
   Reward,
@@ -23,7 +21,6 @@ import type {
 export function useGameState() {
   const [gameState, setGameState] = useState<GameState>(loadGameState);
 
-  // Auto-save on change
   useEffect(() => {
     saveGameState(gameState);
   }, [gameState]);
@@ -49,17 +46,15 @@ export function useGameState() {
   );
 
   const awardDailyPoints = useCallback(
-    (tasks: DailyTask[], dateStr?: string): PointsBreakdown => {
+    (tasks: DailyTask[], completedHabits = 0, totalHabits = 0, dateStr?: string): PointsBreakdown => {
       const today = dateStr ?? format(new Date(), "yyyy-MM-dd");
 
       setGameState((prev) => {
-        // Don't re-award for same date
         const existing = prev.dailyPointsLog.find((e) => e.date === today);
         const streakUpdate = updateStreak(prev, today);
-        const breakdown = calculateDailyPoints(tasks, streakUpdate.currentStreak);
+        const breakdown = calculateDailyPoints(tasks, streakUpdate.currentStreak, completedHabits, totalHabits);
 
         if (existing) {
-          // Update existing entry
           const pointDiff = breakdown.total - existing.points;
           return {
             ...prev,
@@ -98,9 +93,8 @@ export function useGameState() {
         };
       });
 
-      // Return breakdown for UI animation
       const streakUpdate = updateStreak(gameState, today);
-      return calculateDailyPoints(tasks, streakUpdate.currentStreak);
+      return calculateDailyPoints(tasks, streakUpdate.currentStreak, completedHabits, totalHabits);
     },
     [gameState]
   );
@@ -129,6 +123,20 @@ export function useGameState() {
     }));
   }, []);
 
+  const addHabit = useCallback((habit: Habit) => {
+    setGameState((prev) => ({
+      ...prev,
+      habits: [...prev.habits, habit],
+    }));
+  }, []);
+
+  const removeHabit = useCallback((habitId: string) => {
+    setGameState((prev) => ({
+      ...prev,
+      habits: prev.habits.filter((h) => h.id !== habitId),
+    }));
+  }, []);
+
   return {
     gameState,
     levelInfo,
@@ -138,5 +146,7 @@ export function useGameState() {
     claimReward,
     addReward,
     removeReward,
+    addHabit,
+    removeHabit,
   };
 }
