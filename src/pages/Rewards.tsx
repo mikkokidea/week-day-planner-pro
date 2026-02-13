@@ -115,8 +115,8 @@ const Rewards = () => {
       {/* Regular rewards */}
       <div className="space-y-3.5 mb-6">
         <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-1">Palkinnot</h2>
-        {regularRewards.map((reward, index) => (
-          <div key={reward.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s` }}>
+        {regularRewards.map((reward) => (
+          <div key={reward.id}>
             <RewardCard
               reward={reward}
               currentPoints={gameState.currentPoints}
