@@ -1,349 +1,293 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "@/hooks/use-toast";
-import { CheckCircle } from "lucide-react";
-import { getISOWeek, format } from "date-fns";
-
-interface WeekPlanData { weekKey: string; goals: string[]; updatedAt: string }
-interface DailyPlanData {
-  dateKey: string;
-  projects: { name: string; tasks: string[] }[];
-  otherWork: string[];
-  otherTasks: string[];
-  completedTasks: string[];
-  createdAt: string;
-}
-
-const WEEK_PREFIX = "weekPlan-";
-const DAY_PREFIX = "dailyPlan-";
-
-function getCurrentWeekKey(date = new Date()) {
-  const week = getISOWeek(date);
-  const year = date.getFullYear();
-  return `${WEEK_PREFIX}${year}-W${String(week).padStart(2, "0")}`;
-}
-
-function getTodayKey(date = new Date()) {
-  const d = new Date(date);
-  const iso = d.toISOString().slice(0, 10);
-  return `${DAY_PREFIX}${iso}`;
-}
-
-function loadWeekPlan(key: string): WeekPlanData | null {
-  try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null } catch { return null }
-}
-
-function loadDailyPlan(key: string): DailyPlanData | null {
-  try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null } catch { return null }
-}
-
-function saveDailyPlan(data: DailyPlanData) {
-  localStorage.setItem(data.dateKey, JSON.stringify(data));
-}
-
-function findPreviousDaily(beforeKey: string): DailyPlanData | null {
-  const keys = Object.keys(localStorage).filter((k) => k.startsWith(DAY_PREFIX));
-  const parseDate = (k: string) => k.replace(DAY_PREFIX, "");
-  const before = parseDate(beforeKey);
-  const sorted = keys
-    .map((k) => parseDate(k))
-    .filter((d) => d < before)
-    .sort()
-    .reverse();
-  if (!sorted.length) return null;
-  return loadDailyPlan(`${DAY_PREFIX}${sorted[0]}`);
-}
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChevronLeft, ChevronRight, Briefcase, User, FolderOpen } from "lucide-react";
+import { format, addDays, subDays } from "date-fns";
+import { fi } from "date-fns/locale";
+import PageContainer from "@/components/PageContainer";
+import TaskInput from "@/components/TaskInput";
+import TaskItem from "@/components/TaskItem";
+import PointsBadge from "@/components/PointsBadge";
+import CelebrationOverlay from "@/components/CelebrationOverlay";
+import { useGame } from "@/contexts/GameContext";
+import { useDailyPlan } from "@/hooks/useDailyPlan";
+import { loadWeekPlan, getWeekKey } from "@/lib/storage";
+import { calculateDailyPoints } from "@/lib/gamification";
 
 const DailyPlan = () => {
-  const weekKey = useMemo(() => getCurrentWeekKey(), []);
-  const todayKey = useMemo(() => getTodayKey(), []);
-  const week = loadWeekPlan(weekKey);
+  const [viewDate, setViewDate] = useState(new Date());
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [lastCelebratedCount, setLastCelebratedCount] = useState(-1);
+  const [addTab, setAddTab] = useState<string>("project");
 
-  const [projects, setProjects] = useState<{ name: string; tasks: string[] }[]>(
-    (week?.goals || ["", "", ""]).slice(0, 3).map((name) => ({ name, tasks: [] }))
+  const isToday = useMemo(
+    () => format(viewDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd"),
+    [viewDate]
   );
-  const [otherWork, setOtherWork] = useState<string[]>([]);
-  const [otherTasks, setOtherTasks] = useState<string[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<string[]>([]);
-  const [prevOpen, setPrevOpen] = useState(false);
-  const [prevPlan, setPrevPlan] = useState<DailyPlanData | null>(null);
 
+  const {
+    tasks,
+    completedCount,
+    projectTasks,
+    workTasks,
+    personalTasks,
+    addTask,
+    removeTask,
+    toggleTask,
+  } = useDailyPlan(viewDate);
+
+  const { gameState, awardDailyPoints } = useGame();
+  const weekPlan = useMemo(() => loadWeekPlan(getWeekKey(viewDate)), [viewDate]);
+  const goals = weekPlan?.goals ?? ["", "", ""];
+
+  const todayPoints = useMemo(
+    () => calculateDailyPoints(tasks, gameState.currentStreak),
+    [tasks, gameState.currentStreak]
+  );
+
+  // Award points when tasks change (only for today)
   useEffect(() => {
-    // Load today's if exists
-    const existing = loadDailyPlan(todayKey);
-    if (existing) {
-      setProjects(existing.projects);
-      setOtherWork(existing.otherWork);
-      setOtherTasks(existing.otherTasks);
-      setCompletedTasks(existing.completedTasks || []);
+    if (isToday && tasks.length > 0 && tasks.some((t) => t.completed)) {
+      awardDailyPoints(tasks);
     }
-  }, [todayKey]);
+  }, [tasks, isToday, awardDailyPoints]);
 
+  // Celebration when all tasks completed
   useEffect(() => {
-    // Sync project names with week plan if empty
-    if (week?.goals) {
-      setProjects((p) => p.map((proj, i) => ({ ...proj, name: week.goals[i] || proj.name })));
+    if (
+      tasks.length > 0 &&
+      completedCount === tasks.length &&
+      lastCelebratedCount !== tasks.length &&
+      isToday
+    ) {
+      setShowCelebration(true);
+      setLastCelebratedCount(tasks.length);
     }
-  }, [weekKey]);
+  }, [completedCount, tasks.length, lastCelebratedCount, isToday]);
 
-  const addTask = (i: number, task: string) => {
-    const t = task.trim(); if (!t) return;
-    setProjects((ps) => ps.map((p, idx) => idx === i ? { ...p, tasks: [...p.tasks, t] } : p));
-  };
-  const removeTask = (pi: number, ti: number) => {
-    setProjects((ps) => ps.map((p, idx) => idx === pi ? { ...p, tasks: p.tasks.filter((_, j) => j !== ti) } : p));
-  };
+  const handleToggle = useCallback(
+    (id: string) => {
+      if (!isToday) return;
+      toggleTask(id);
+    },
+    [isToday, toggleTask]
+  );
 
-  const onSave = () => {
-    const data: DailyPlanData = {
-      dateKey: todayKey,
-      projects,
-      otherWork,
-      otherTasks,
-      completedTasks,
-      createdAt: new Date().toISOString(),
-    };
-    saveDailyPlan(data);
-    toast({ title: "Päiväsuunnitelma tallennettu", description: format(new Date(), "d.M.yyyy") });
-  };
+  // Find task's global index for top-3 detection
+  const getGlobalIndex = (taskId: string) => tasks.findIndex((t) => t.id === taskId);
 
-  const toggleTaskCompletion = (task: string) => {
-    setCompletedTasks(prev => 
-      prev.includes(task) 
-        ? prev.filter(t => t !== task)
-        : [...prev, task]
+  const projectTasksByGoal = useMemo(() => {
+    return [0, 1, 2].map((i) =>
+      projectTasks.filter((t) => t.projectIndex === i)
     );
-  };
-
-  const showPrev = () => {
-    const prev = findPreviousDaily(todayKey);
-    setPrevPlan(prev);
-    setPrevOpen(true);
-  };
-
-  const allWorkTasks = [...projects.flatMap((p) => p.tasks), ...otherWork];
+  }, [projectTasks]);
 
   return (
-    <div className="container mx-auto max-w-md px-4 py-6 space-y-6">
+    <PageContainer>
       <Helmet>
-        <title>Päiväsuunnittelu – työ & muut työt | Suunnittelija</title>
-        <meta name="description" content="Luo päivän suunnitelma: työprojektien tehtävät sekä muut työ- ja muut työt listana. Boldaa 3 ensimmäistä työtehtävää." />
-        <link rel="canonical" href="/paiva" />
+        <title>Päiväsuunnittelu – Pelillistetty Suunnittelija</title>
       </Helmet>
 
-      {!week?.goals?.some(Boolean) && (
-        <Card>
-          <CardContent className="py-4">
-            <p className="text-sm text-muted-foreground">Et ole vielä asettanut viikon tavoitteita. Aloita viikkosuunnittelusta.</p>
-            <div className="pt-3">
-              <Button asChild variant="secondary">
-                <a href="/viikko">Avaa viikkosuunnittelu</a>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Task Overview List - shows all work tasks */}
-      {(allWorkTasks.length > 0 || otherWork.length > 0) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Päivän työtehtävät</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {/* Show message if no tasks yet */}
-              {allWorkTasks.length === 0 && otherWork.length === 0 && (
-                <p className="text-muted-foreground text-sm">Lisää tehtäviä alla olevista kentistä, niin ne näkyvät tässä listassa.</p>
-              )}
-              
-              {/* Important project tasks first */}
-              {allWorkTasks.slice(0, 3).map((task, idx) => {
-                const isCompleted = completedTasks.includes(task);
-                return (
-                  <div key={`important-${idx}`} className="flex items-center space-x-3 p-2 rounded-lg bg-primary/5">
-                    <Checkbox 
-                      checked={isCompleted}
-                      onCheckedChange={() => toggleTaskCompletion(task)}
-                    />
-                    <span className={`font-semibold flex-1 ${isCompleted ? 'line-through opacity-50' : ''}`}>
-                      {task}
-                    </span>
-                    {isCompleted && <CheckCircle className="w-4 h-4 text-green-600" />}
-                  </div>
-                );
-              })}
-              
-              {/* Other project tasks */}
-              {projects.flatMap((p) => p.tasks).slice(3).map((task, idx) => {
-                const isCompleted = completedTasks.includes(task);
-                return (
-                  <div key={`other-${idx}`} className="flex items-center space-x-3 p-2">
-                    <Checkbox 
-                      checked={isCompleted}
-                      onCheckedChange={() => toggleTaskCompletion(task)}
-                    />
-                    <span className={`flex-1 ${isCompleted ? 'line-through opacity-50' : ''}`}>
-                      {task}
-                    </span>
-                    {isCompleted && <CheckCircle className="w-4 h-4 text-green-600" />}
-                  </div>
-                );
-              })}
-              
-              {/* Other work tasks */}
-              {otherWork.map((task, idx) => {
-                const isCompleted = completedTasks.includes(task);
-                return (
-                  <div key={`work-${idx}`} className="flex items-center space-x-3 p-2">
-                    <Checkbox 
-                      checked={isCompleted}
-                      onCheckedChange={() => toggleTaskCompletion(task)}
-                    />
-                    <span className={`flex-1 ${isCompleted ? 'line-through opacity-50' : ''}`}>
-                      {task}
-                    </span>
-                    {isCompleted && <CheckCircle className="w-4 h-4 text-green-600" />}
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="flex gap-2">
-        <Button onClick={onSave} variant="hero" className="flex-1">Tallenna päivän suunnitelma</Button>
-        <Button onClick={showPrev} variant="outline">Edellinen</Button>
+      {/* Date navigation */}
+      <div className="flex items-center justify-between mb-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setViewDate((d) => subDays(d, 1))}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </Button>
+        <div className="text-center">
+          <h1 className="text-lg font-bold">
+            {format(viewDate, "EEEE d.M.", { locale: fi })}
+          </h1>
+          {!isToday && (
+            <button
+              onClick={() => setViewDate(new Date())}
+              className="text-xs text-[hsl(var(--brand))] hover:underline"
+            >
+              Palaa tähän päivään
+            </button>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setViewDate((d) => addDays(d, 1))}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </Button>
       </div>
 
-      {/* Projects */}
-      {projects.map((proj, i) => (
-        <Card key={i}>
-          <CardHeader>
-            <CardTitle className="text-lg">Projekti {i + 1}: {proj.name || "(nimeä viikolla)"}</CardTitle>
+      {/* Points summary */}
+      {tasks.length > 0 && (
+        <div className="flex items-center justify-between mb-4 px-1">
+          <span className="text-sm text-muted-foreground">
+            {completedCount}/{tasks.length} valmis
+          </span>
+          <PointsBadge points={todayPoints.total} size="sm" />
+        </div>
+      )}
+
+      {/* Task sections per project goal */}
+      {goals.map(
+        (goal, i) =>
+          (goal || projectTasksByGoal[i].length > 0) && (
+            <Card key={i} className="mb-3 animate-slide-up" style={{ animationDelay: `${i * 0.05}s` }}>
+              <CardHeader className="pb-2 pt-3 px-4">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-gradient-to-r from-[hsl(var(--brand))] to-[hsl(var(--brand-2))] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                    {i + 1}
+                  </span>
+                  {goal || `Projekti ${i + 1}`}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-3 space-y-1">
+                {projectTasksByGoal[i].map((task) => (
+                  <TaskItem
+                    key={task.id}
+                    text={task.text}
+                    completed={task.completed}
+                    isTop3={getGlobalIndex(task.id) < 3}
+                    onToggle={() => handleToggle(task.id)}
+                    onRemove={() => removeTask(task.id)}
+                    editable={isToday}
+                  />
+                ))}
+                {projectTasksByGoal[i].length === 0 && (
+                  <p className="text-xs text-muted-foreground py-1">
+                    Ei tehtäviä
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )
+      )}
+
+      {/* Work tasks */}
+      {workTasks.length > 0 && (
+        <Card className="mb-3 animate-slide-up">
+          <CardHeader className="pb-2 pt-3 px-4">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-muted-foreground" />
+              Muut työtehtävät
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <TaskInput onAdd={(t) => addTask(i, t)} placeholder="Lisää tehtävä ja paina Enter" />
-            <ul className="list-disc pl-5 space-y-1">
-              {proj.tasks.map((t, idx) => (
-                <li key={idx} className="flex items-start justify-between gap-2">
-                  {(() => {
-                    const globalIndex = projects.slice(0, i).reduce((s, p) => s + p.tasks.length, 0) + idx;
-                    return (
-                      <span className={globalIndex < 3 ? "font-semibold" : undefined}>{t}</span>
-                    );
-                  })()}
-                  <button onClick={() => removeTask(i, idx)} className="text-sm text-muted-foreground hover:underline">Poista</button>
-                </li>
-              ))}
-            </ul>
+          <CardContent className="px-4 pb-3 space-y-1">
+            {workTasks.map((task) => (
+              <TaskItem
+                key={task.id}
+                text={task.text}
+                completed={task.completed}
+                isTop3={getGlobalIndex(task.id) < 3}
+                onToggle={() => handleToggle(task.id)}
+                onRemove={() => removeTask(task.id)}
+                editable={isToday}
+              />
+            ))}
           </CardContent>
         </Card>
-      ))}
+      )}
 
-      {/* Other work */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Muut työtehtävät</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <TaskInput onAdd={(t) => setOtherWork((l) => [...l, t])} placeholder="Lisää työtehtävä (Enter)" />
-          <SimpleList items={otherWork} onRemove={(i) => setOtherWork((l) => l.filter((_, j) => i !== j))} />
-        </CardContent>
-      </Card>
+      {/* Personal tasks */}
+      {personalTasks.length > 0 && (
+        <Card className="mb-3 animate-slide-up">
+          <CardHeader className="pb-2 pt-3 px-4">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <User className="w-4 h-4 text-muted-foreground" />
+              Henkilökohtaiset
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-3 space-y-1">
+            {personalTasks.map((task) => (
+              <TaskItem
+                key={task.id}
+                text={task.text}
+                completed={task.completed}
+                isTop3={getGlobalIndex(task.id) < 3}
+                onToggle={() => handleToggle(task.id)}
+                onRemove={() => removeTask(task.id)}
+                editable={isToday}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Other personal */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Muut työt</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <TaskInput onAdd={(t) => setOtherTasks((l) => [...l, t])} placeholder="Lisää tehtävä (Enter)" />
-          <SimpleList items={otherTasks} onRemove={(i) => setOtherTasks((l) => l.filter((_, j) => i !== j))} />
-        </CardContent>
-      </Card>
+      {/* Add task section */}
+      {isToday && (
+        <Card className="mb-3">
+          <CardContent className="p-4">
+            <Tabs value={addTab} onValueChange={setAddTab}>
+              <TabsList className="w-full mb-3">
+                <TabsTrigger value="project" className="flex-1 text-xs">
+                  <FolderOpen className="w-3.5 h-3.5 mr-1" />
+                  Projekti
+                </TabsTrigger>
+                <TabsTrigger value="work" className="flex-1 text-xs">
+                  <Briefcase className="w-3.5 h-3.5 mr-1" />
+                  Työ
+                </TabsTrigger>
+                <TabsTrigger value="personal" className="flex-1 text-xs">
+                  <User className="w-3.5 h-3.5 mr-1" />
+                  Henk.
+                </TabsTrigger>
+              </TabsList>
 
-
-      {/* Previous dialog */}
-      <Dialog open={prevOpen} onOpenChange={setPrevOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edellinen päiväsuunnitelma</DialogTitle>
-          </DialogHeader>
-          {prevPlan ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Päivä: {prevPlan.dateKey.replace(DAY_PREFIX, "")}</p>
-              <section>
-                <h3 className="font-medium mb-2">Projektit</h3>
-                {prevPlan.projects.map((p, i) => (
-                  <div key={i} className="mb-3">
-                    <p className="text-sm text-muted-foreground">{p.name}</p>
-                    <ul className="list-disc pl-5">
-                      {p.tasks.map((t, idx) => (
-                        <li key={idx} className={idx < 3 ? "font-semibold" : undefined}>{t}</li>
-                      ))}
-                    </ul>
+              <TabsContent value="project" className="space-y-2">
+                {goals.map((goal, i) => (
+                  <div key={i}>
+                    <label className="text-xs text-muted-foreground mb-1 block">
+                      {goal || `Projekti ${i + 1}`}
+                    </label>
+                    <TaskInput
+                      onAdd={(text) => addTask(text, "project", i)}
+                      placeholder="Lisää tehtävä + Enter"
+                    />
                   </div>
                 ))}
-              </section>
-              <section>
-                <h3 className="font-medium mb-1">Muut työtehtävät</h3>
-                <ul className="list-disc pl-5">
-                  {prevPlan.otherWork.map((t, i) => (<li key={i}>{t}</li>))}
-                </ul>
-              </section>
-              <section>
-                <h3 className="font-medium mb-1">Muut työt</h3>
-                <ul className="list-disc pl-5">
-                  {prevPlan.otherTasks.map((t, i) => (<li key={i}>{t}</li>))}
-                </ul>
-              </section>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Ei aiempaa suunnitelmaa.</p>
+              </TabsContent>
+
+              <TabsContent value="work">
+                <TaskInput
+                  onAdd={(text) => addTask(text, "work")}
+                  placeholder="Lisää työtehtävä + Enter"
+                />
+              </TabsContent>
+
+              <TabsContent value="personal">
+                <TaskInput
+                  onAdd={(text) => addTask(text, "personal")}
+                  placeholder="Lisää henkilökohtainen tehtävä + Enter"
+                />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Empty state */}
+      {tasks.length === 0 && (
+        <div className="text-center py-10 text-muted-foreground">
+          <p className="text-sm">Ei vielä tehtäviä tälle päivälle.</p>
+          {isToday && (
+            <p className="text-xs mt-1">Lisää tehtäviä yllä olevista välilehdistä.</p>
           )}
-        </DialogContent>
-      </Dialog>
-    </div>
+        </div>
+      )}
+
+      {/* Celebration overlay */}
+      <CelebrationOverlay
+        show={showCelebration}
+        message="Kaikki tehtävät valmiit!"
+        emoji="🎉"
+        points={todayPoints.allCompleteBonus}
+        onDone={() => setShowCelebration(false)}
+      />
+    </PageContainer>
   );
 };
-
-function TaskInput({ onAdd, placeholder }: { onAdd: (t: string) => void; placeholder: string }) {
-  const [val, setVal] = useState("");
-  return (
-    <Input
-      value={val}
-      onChange={(e) => setVal(e.target.value)}
-      placeholder={placeholder}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          onAdd(val);
-          setVal("");
-        }
-      }}
-    />
-  );
-}
-
-function SimpleList({ items, onRemove }: { items: string[]; onRemove: (i: number) => void }) {
-  return (
-    <ul className="list-disc pl-5 space-y-1">
-      {items.map((t, i) => (
-        <li key={i} className="flex items-start justify-between gap-2">
-          <span>{t}</span>
-          <button onClick={() => onRemove(i)} className="text-sm text-muted-foreground hover:underline">Poista</button>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 export default DailyPlan;

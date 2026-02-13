@@ -2,9 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Design system – all colors HSL */
 
 @layer base {
 :root {
@@ -54,6 +52,14 @@ All colors MUST be HSL.
     --shadow-elegant: 0 10px 30px -10px hsl(var(--brand) / 0.30);
     --shadow-glow: 0 0 0 2px hsl(var(--brand) / 0.20), 0 18px 48px -12px hsl(var(--brand-2) / 0.35);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Gamification colors */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --gold: 43 96% 56%;
+    --gold-foreground: 0 0% 10%;
+    --streak: 15 90% 55%;
+    --streak-foreground: 0 0% 100%;
   }
 
 .dark {
@@ -99,6 +105,11 @@ All colors MUST be HSL.
     --gradient-hero: linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand-2)) 100%);
     --shadow-elegant: 0 10px 30px -10px hsl(var(--brand) / 0.35);
     --shadow-glow: 0 0 0 2px hsl(var(--brand) / 0.25), 0 18px 48px -12px hsl(var(--brand-2) / 0.45);
+
+    /* Gamification dark */
+    --success: 142 71% 55%;
+    --gold: 43 96% 62%;
+    --streak: 15 90% 60%;
   }
 }
 
@@ -109,5 +120,75 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* ── Animations ──────────────────────────────────────────────── */
+
+@keyframes float-up {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-60px) scale(1.3); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px hsl(var(--gold) / 0.4); }
+  50% { box-shadow: 0 0 20px hsl(var(--gold) / 0.7); }
+}
+
+@keyframes flame-flicker {
+  0%, 100% { transform: scaleY(1) scaleX(1); }
+  25% { transform: scaleY(1.15) scaleX(0.9); }
+  50% { transform: scaleY(0.95) scaleX(1.05); }
+  75% { transform: scaleY(1.1) scaleX(0.95); }
+}
+
+@keyframes scale-in {
+  0% { opacity: 0; transform: scale(0.7); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-up {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes points-pop {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  50% { transform: translateY(-20px) scale(1.4); }
+  100% { opacity: 0; transform: translateY(-40px) scale(1); }
+}
+
+@keyframes confetti-fall {
+  0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+  100% { opacity: 0; transform: translateY(100vh) rotate(720deg) scale(0.5); }
+}
+
+/* ── Utility classes ─────────────────────────────────────────── */
+
+@layer utilities {
+  .animate-float-up {
+    animation: float-up 1s ease-out forwards;
+  }
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  .animate-flame {
+    animation: flame-flicker 0.6s ease-in-out infinite;
+  }
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out;
+  }
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+  .animate-points-pop {
+    animation: points-pop 0.8s ease-out forwards;
+  }
+  .animate-confetti {
+    animation: confetti-fall 2s ease-in forwards;
+  }
+
+  .glass {
+    @apply backdrop-blur-lg bg-background/80 border border-border/50;
   }
 }

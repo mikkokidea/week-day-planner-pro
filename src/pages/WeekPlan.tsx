@@ -1,93 +1,125 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Helmet } from "react-helmet-async";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { getISOWeek, format } from "date-fns";
-
-interface WeekPlanData {
-  weekKey: string;
-  goals: string[]; // 3 strings
-  updatedAt: string;
-}
-
-const STORAGE_PREFIX = "weekPlan-";
-
-function getCurrentWeekKey(date = new Date()) {
-  const week = getISOWeek(date);
-  const year = date.getFullYear();
-  return `${STORAGE_PREFIX}${year}-W${String(week).padStart(2, "0")}`;
-}
-
-function loadWeekPlan(key: string): WeekPlanData | null {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    return JSON.parse(raw) as WeekPlanData;
-  } catch {
-    return null;
-  }
-}
-
-function saveWeekPlan(data: WeekPlanData) {
-  localStorage.setItem(data.weekKey, JSON.stringify(data));
-}
+import PageContainer from "@/components/PageContainer";
+import { useWeekPlan } from "@/hooks/useWeekPlan";
+import { useDailyPlan } from "@/hooks/useDailyPlan";
 
 const WeekPlan = () => {
-  const weekKey = useMemo(() => getCurrentWeekKey(), []);
-  const [goals, setGoals] = useState<string[]>(["", "", ""]);
+  const {
+    weekLabel,
+    isCurrentWeek,
+    goals,
+    handleChange,
+    save,
+    goToPreviousWeek,
+    goToNextWeek,
+    goToCurrentWeek,
+  } = useWeekPlan();
 
-  useEffect(() => {
-    const existing = loadWeekPlan(weekKey);
-    if (existing?.goals?.length === 3) setGoals(existing.goals);
-  }, [weekKey]);
+  const { tasks } = useDailyPlan();
 
-  const handleChange = (i: number, v: string) => {
-    setGoals((g) => g.map((x, idx) => (idx === i ? v : x)));
-  };
+  const goalProgress = useMemo(() => {
+    return goals.map((_, i) => {
+      const projectTasks = tasks.filter(
+        (t) => t.category === "project" && t.projectIndex === i
+      );
+      const done = projectTasks.filter((t) => t.completed).length;
+      return { done, total: projectTasks.length };
+    });
+  }, [goals, tasks]);
 
-  const onSave = () => {
-    const cleaned = goals.map((g) => g.trim());
-    const data: WeekPlanData = {
-      weekKey,
-      goals: cleaned,
-      updatedAt: new Date().toISOString(),
-    };
-    saveWeekPlan(data);
-    toast({ title: "Viikkosuunnitelma tallennettu", description: format(new Date(), "d.M.yyyy") });
+  const handleSave = () => {
+    save();
+    toast({
+      title: "Viikkosuunnitelma tallennettu",
+      description: weekLabel,
+    });
   };
 
   return (
-    <div className="container mx-auto max-w-md px-4 py-8">
+    <PageContainer>
       <Helmet>
-        <title>Viikkosuunnittelu – 3 tavoitetta | Suunnittelija</title>
-        <meta name="description" content="Aseta viikon 3 tärkeintä tavoitetta. Nämä muodostavat päivän projektit ja tehtävät." />
-        <link rel="canonical" href="/viikko" />
+        <title>Viikkosuunnittelu – Pelillistetty Suunnittelija</title>
       </Helmet>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Viikon 3 tärkeintä tavoitetta</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {goals.map((g, i) => (
-            <div key={i} className="space-y-1">
-              <label className="text-sm text-muted-foreground">Tavoite {i + 1}</label>
-              <Input
-                value={g}
-                onChange={(e) => handleChange(i, e.target.value)}
-                placeholder={`Kirjoita tavoite ${i + 1}`}
-              />
-            </div>
-          ))}
-          <div className="flex gap-2 pt-2">
-            <Button onClick={onSave} variant="hero" className="flex-1">Tallenna viikko</Button>
-          </div>
-        </CardContent>
-      </Card>
-      <p className="text-xs text-muted-foreground mt-3">Tämä viikko: {weekKey.replace(STORAGE_PREFIX, "")}</p>
-    </div>
+      {/* Week navigation */}
+      <div className="flex items-center justify-between mb-5">
+        <Button variant="ghost" size="icon" onClick={goToPreviousWeek}>
+          <ChevronLeft className="w-5 h-5" />
+        </Button>
+        <div className="text-center">
+          <button
+            onClick={goToCurrentWeek}
+            className="text-lg font-bold hover:text-[hsl(var(--brand))] transition-colors"
+          >
+            {weekLabel}
+          </button>
+          {!isCurrentWeek && (
+            <p className="text-xs text-muted-foreground">
+              Paina viikkoa palataksesi nykyiseen
+            </p>
+          )}
+        </div>
+        <Button variant="ghost" size="icon" onClick={goToNextWeek}>
+          <ChevronRight className="w-5 h-5" />
+        </Button>
+      </div>
+
+      {/* Goals */}
+      <div className="space-y-4">
+        {goals.map((goal, i) => (
+          <Card key={i} className="animate-slide-up" style={{ animationDelay: `${i * 0.05}s` }}>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-full bg-gradient-to-r from-[hsl(var(--brand))] to-[hsl(var(--brand-2))] text-white font-bold flex items-center justify-center text-sm flex-shrink-0">
+                  {i + 1}
+                </span>
+                <Input
+                  value={goal}
+                  onChange={(e) => handleChange(i, e.target.value)}
+                  placeholder={`Viikon tavoite ${i + 1}`}
+                  className="text-base font-medium"
+                  readOnly={!isCurrentWeek}
+                />
+              </div>
+
+              {/* Progress for this goal */}
+              {isCurrentWeek && goalProgress[i] && goalProgress[i].total > 0 && (
+                <div className="ml-11 space-y-1">
+                  <Progress
+                    value={
+                      (goalProgress[i].done / goalProgress[i].total) * 100
+                    }
+                    className="h-1.5"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    {goalProgress[i].done}/{goalProgress[i].total} tehtävää
+                    valmiina
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Save button */}
+      {isCurrentWeek && (
+        <Button
+          onClick={handleSave}
+          className="w-full mt-5 bg-gradient-to-r from-[hsl(var(--brand))] to-[hsl(var(--brand-2))] text-white hover:opacity-90"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          Tallenna viikko
+        </Button>
+      )}
+    </PageContainer>
   );
 };
 
