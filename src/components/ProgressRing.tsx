@@ -8,7 +8,7 @@ interface ProgressRingProps {
 
 export default function ProgressRing({
   progress,
-  size = 48,
+  size = 44,
   strokeWidth = 4,
   className,
   children,
@@ -25,7 +25,7 @@ export default function ProgressRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="hsl(var(--muted))"
+          stroke="rgba(255,255,255,0.06)"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -33,16 +33,16 @@ export default function ProgressRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="hsl(var(--brand))"
+          stroke="hsl(var(--gold))"
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          className="transition-all duration-500"
+          className="transition-all duration-[800ms]"
         />
       </svg>
       {children && (
-        <div className="absolute inset-0 flex items-center justify-center text-xs font-bold">
+        <div className="absolute inset-0 flex items-center justify-center font-display text-xs font-bold text-gold">
           {children}
         </div>
       )}

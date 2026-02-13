@@ -11,42 +11,51 @@ interface TaskRowProps {
 }
 
 export default function TaskRow({ task, onToggle, onRemove, editable = true }: TaskRowProps) {
+  const isFrog = task.pillar === "frog";
+
   return (
     <div
       className={cn(
-        "group flex items-center gap-2 py-2 px-2 rounded-lg transition-all",
-        task.completed && "opacity-60"
+        "group relative flex items-center gap-2 py-2 px-2 rounded-lg transition-all",
+        task.completed && "opacity-60",
+        isFrog && "bg-orange-500/[0.08] border border-orange-500/20",
+        task.isMIT && !isFrog && "bg-muted border border-border"
       )}
     >
       <button
         onClick={onToggle}
         disabled={!editable}
         className={cn(
-          "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all",
+          "rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all",
+          task.isMIT ? "w-[22px] h-[22px]" : "w-[18px] h-[18px]",
           task.completed
             ? "bg-success border-success text-success-foreground animate-check-pop"
-            : task.pillar === "frog"
-            ? "border-green-500 hover:bg-green-500/10"
-            : "border-muted-foreground/30 hover:border-[hsl(var(--brand))]"
+            : isFrog
+            ? "border-pillar-frog hover:bg-pillar-frog/10"
+            : "border-muted-foreground/30 hover:border-gold"
         )}
       >
-        {task.completed && <Check className="w-3.5 h-3.5" />}
+        {task.completed && <Check className="w-3 h-3" />}
       </button>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          {task.isMIT && <Star className="w-3 h-3 text-amber-500 flex-shrink-0" />}
-          {task.pillar === "frog" && <span className="text-sm animate-frog-bounce">🐸</span>}
+          {task.isMIT && <Star className="w-3 h-3 text-gold flex-shrink-0" />}
           <span
             className={cn(
-              "text-sm truncate",
-              task.completed && "line-through text-muted-foreground"
+              "text-[13px] truncate",
+              task.completed && "line-through text-muted-foreground",
+              task.isMIT && !task.completed && "font-medium"
             )}
           >
             {task.text}
           </span>
         </div>
       </div>
+
+      {isFrog && !task.completed && (
+        <span className="text-lg animate-frog-bounce">🐸</span>
+      )}
 
       <PillarBadge pillar={task.pillar} size="sm" />
 

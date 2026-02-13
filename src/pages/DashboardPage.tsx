@@ -3,7 +3,6 @@ import { Helmet } from "react-helmet-async";
 import { format } from "date-fns";
 import { fi } from "date-fns/locale";
 import { Plus, Target } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import PageContainer from "@/components/PageContainer";
 import LevelBadge from "@/components/LevelBadge";
@@ -41,14 +40,12 @@ export default function DashboardPage() {
     [tasks, gameState.currentStreak, habitCompleted, habitTotal]
   );
 
-  // Award points
   useEffect(() => {
     if (tasks.length > 0 && tasks.some((t) => t.completed)) {
       awardDailyPoints(tasks, habitCompleted, habitTotal);
     }
   }, [tasks, habitCompleted, habitTotal, awardDailyPoints]);
 
-  // Celebration
   useEffect(() => {
     if (tasks.length > 0 && completedCount === tasks.length && lastCelebratedCount !== tasks.length) {
       setShowCelebration(true);
@@ -67,7 +64,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-lg font-bold">
+          <h1 className="font-display text-2xl font-extrabold">
             {format(new Date(), "EEEE d.M.", { locale: fi })}
           </h1>
           <div className="flex items-center gap-2 mt-0.5">
@@ -86,8 +83,8 @@ export default function DashboardPage() {
       {/* Habits */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Tavat</h2>
-          <button onClick={() => setAddHabitOpen(true)} className="text-xs text-[hsl(var(--brand))]">+ Lisää</button>
+          <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Tavat</h2>
+          <button onClick={() => setAddHabitOpen(true)} className="text-[11px] text-gold font-medium">+ Lisää</button>
         </div>
         <HabitStrip habits={todayHabits} completedIds={completedIds} onToggle={toggleHabit} />
       </div>
@@ -103,7 +100,7 @@ export default function DashboardPage() {
       {goals.length > 0 && (
         <button
           onClick={() => setShowWeekIntention(true)}
-          className="w-full flex items-center gap-2 px-3 py-2 mb-4 rounded-lg bg-muted/50 text-xs text-muted-foreground hover:bg-muted transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-2 mb-4 rounded-xl bg-muted border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <Target className="w-3.5 h-3.5" />
           <span>{goals.length} viikkotavoitetta</span>
@@ -113,7 +110,7 @@ export default function DashboardPage() {
       {/* Task summary */}
       {tasks.length > 0 && (
         <div className="flex items-center justify-between mb-3 px-1">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
             {completedCount}/{tasks.length} tehtävää valmis
           </span>
         </div>
@@ -125,23 +122,14 @@ export default function DashboardPage() {
       {/* FAB */}
       <button
         onClick={() => setAddTaskOpen(true)}
-        className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full bg-gradient-to-r from-[hsl(var(--brand))] to-[hsl(var(--brand-2))] text-white shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+        className="fixed bottom-20 right-4 z-50 w-14 h-14 rounded-2xl bg-gold text-gold-foreground shadow-lg shadow-amber-500/30 flex items-center justify-center hover:scale-105 transition-transform"
       >
-        <Plus className="w-6 h-6" />
+        <span className="text-2xl font-light">+</span>
       </button>
 
       {/* Sheets */}
-      <AddTaskSheet
-        open={addTaskOpen}
-        onOpenChange={setAddTaskOpen}
-        onAdd={addTask}
-        weekGoals={goals as WeekGoal[]}
-      />
-      <AddHabitSheet
-        open={addHabitOpen}
-        onOpenChange={setAddHabitOpen}
-        onAdd={addHabit}
-      />
+      <AddTaskSheet open={addTaskOpen} onOpenChange={setAddTaskOpen} onAdd={addTask} weekGoals={goals as WeekGoal[]} />
+      <AddHabitSheet open={addHabitOpen} onOpenChange={setAddHabitOpen} onAdd={addHabit} />
       <WeekIntention show={showWeekIntention} onClose={() => setShowWeekIntention(false)} />
 
       <CelebrationOverlay

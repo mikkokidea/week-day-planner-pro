@@ -39,13 +39,13 @@ export default function AddHabitSheet({ open, onOpenChange, onAdd }: AddHabitShe
     <BottomSheet open={open} onOpenChange={onOpenChange} title="Lisää tapa">
       <div className="space-y-4">
         <div>
-          <Label className="text-xs">Emoji</Label>
+          <Label className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Emoji</Label>
           <div className="flex flex-wrap gap-2 mt-1">
             {EMOJI_OPTIONS.map((e) => (
               <button
                 key={e}
                 onClick={() => setEmoji(e)}
-                className={`text-2xl p-1 rounded-lg ${emoji === e ? "ring-2 ring-[hsl(var(--brand))]" : ""}`}
+                className={`text-2xl p-1 rounded-lg ${emoji === e ? "ring-2 ring-gold" : ""}`}
               >
                 {e}
               </button>
@@ -53,11 +53,11 @@ export default function AddHabitSheet({ open, onOpenChange, onAdd }: AddHabitShe
           </div>
         </div>
         <div>
-          <Label className="text-xs">Nimi</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="esim. Liikunta" />
+          <Label className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Nimi</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="esim. Liikunta" className="rounded-xl" />
         </div>
         <div>
-          <Label className="text-xs mb-1.5 block">Päivät</Label>
+          <Label className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1.5 block font-semibold">Päivät</Label>
           <div className="flex gap-1.5">
             {DAY_LABELS.map((label, i) => (
               <button
@@ -65,7 +65,7 @@ export default function AddHabitSheet({ open, onOpenChange, onAdd }: AddHabitShe
                 onClick={() => toggleDay(i)}
                 className={`w-9 h-9 rounded-full text-xs font-medium transition-all ${
                   days.includes(i)
-                    ? "bg-[hsl(var(--brand))] text-white"
+                    ? "bg-gold text-gold-foreground"
                     : "bg-muted text-muted-foreground"
                 }`}
               >
@@ -74,7 +74,11 @@ export default function AddHabitSheet({ open, onOpenChange, onAdd }: AddHabitShe
             ))}
           </div>
         </div>
-        <Button onClick={handleSubmit} className="w-full bg-gradient-to-r from-[hsl(var(--brand))] to-[hsl(var(--brand-2))] text-white">
+        <Button
+          onClick={handleSubmit}
+          disabled={!name.trim()}
+          className="w-full bg-gold hover:bg-gold/90 text-gold-foreground font-bold rounded-xl py-3.5 disabled:bg-muted disabled:text-muted-foreground"
+        >
           Lisää tapa
         </Button>
       </div>

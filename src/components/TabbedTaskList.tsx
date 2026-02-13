@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PILLARS, type PillarId } from "@/lib/pillars";
 import TaskRow from "./TaskRow";
 import type { DailyTask } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface TabbedTaskListProps {
   tasks: DailyTask[];
@@ -11,50 +11,73 @@ interface TabbedTaskListProps {
   editable?: boolean;
 }
 
-export default function TabbedTaskList({ tasks, onToggle, onRemove, editable = true }: TabbedTaskListProps) {
-  const [activePillar, setActivePillar] = useState<PillarId>("sales");
+type TabValue = "all" | PillarId;
 
-  const filteredTasks = tasks.filter((t) => t.pillar === activePillar);
+export default function TabbedTaskList({ tasks, onToggle, onRemove, editable = true }: TabbedTaskListProps) {
+  const [activeTab, setActiveTab] = useState<TabValue>("all");
+
+  const filteredTasks = activeTab === "all" ? tasks : tasks.filter((t) => t.pillar === activeTab);
+
+  const tabs: { value: TabValue; emoji: string; label: string }[] = [
+    { value: "all", emoji: "✦", label: "Kaikki" },
+    ...PILLARS.map((p) => ({ value: p.id as TabValue, emoji: p.emoji, label: p.name })),
+  ];
 
   return (
-    <Tabs value={activePillar} onValueChange={(v) => setActivePillar(v as PillarId)}>
-      <TabsList className="w-full h-auto flex-wrap gap-1 bg-transparent p-0 mb-3">
-        {PILLARS.map((p) => {
-          const count = tasks.filter((t) => t.pillar === p.id).length;
+    <div>
+      {/* Tab bar */}
+      <div className="flex border-b border-border overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: "touch" }}>
+        {tabs.map((tab) => {
+          const count = tab.value === "all" ? tasks.length : tasks.filter((t) => t.pillar === tab.value).length;
+          const isActive = activeTab === tab.value;
+          const pillar = PILLARS.find((p) => p.id === tab.value);
+
           return (
-            <TabsTrigger
-              key={p.id}
-              value={p.id}
-              className="text-xs px-2.5 py-1.5 data-[state=active]:bg-[hsl(var(--brand)/0.1)] data-[state=active]:text-foreground rounded-lg"
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              className={cn(
+                "px-3.5 py-2.5 text-[11px] whitespace-nowrap flex-shrink-0 border-b-2 transition-all flex items-center gap-1",
+                isActive
+                  ? "font-semibold border-current"
+                  : "text-muted-foreground font-normal border-transparent"
+              )}
+              style={isActive ? {
+                color: tab.value === "all"
+                  ? "hsl(var(--gold))"
+                  : pillar
+                    ? `hsl(var(--pillar-${pillar.id}))`
+                    : undefined,
+              } : undefined}
             >
-              {p.emoji} {p.name}
-              {count > 0 && <span className="ml-1 text-[10px] text-muted-foreground">({count})</span>}
-            </TabsTrigger>
+              <span className="text-xs">{tab.emoji}</span>
+              <span>{count > 0 ? `${tasks.filter(t => tab.value === "all" ? true : t.pillar === tab.value).filter(t => t.completed).length}/${count}` : tab.label}</span>
+            </button>
           );
         })}
-      </TabsList>
+      </div>
 
-      {PILLARS.map((p) => (
-        <TabsContent key={p.id} value={p.id} className="mt-0">
-          {filteredTasks.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">
-              Ei tehtäviä tässä pilarissa
-            </p>
-          ) : (
-            <div className="space-y-0.5">
-              {filteredTasks.map((task) => (
+      {/* Task list */}
+      <div className="mt-2">
+        {filteredTasks.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-4">
+            Ei tehtäviä
+          </p>
+        ) : (
+          <div className="space-y-0.5">
+            {filteredTasks.map((task, index) => (
+              <div key={task.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.05}s` }}>
                 <TaskRow
-                  key={task.id}
                   task={task}
                   onToggle={() => onToggle(task.id)}
                   onRemove={() => onRemove(task.id)}
                   editable={editable}
                 />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      ))}
-    </Tabs>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

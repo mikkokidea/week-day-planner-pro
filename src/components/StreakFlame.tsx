@@ -21,7 +21,7 @@ export default function StreakFlame({ streak, size = "md", className }: StreakFl
     >
       <span
         className={cn(
-          "animate-flame inline-block origin-bottom",
+          "animate-streak-flame inline-block origin-bottom",
           size === "sm" && "text-lg",
           size === "md" && "text-2xl",
           size === "lg" && "text-4xl"

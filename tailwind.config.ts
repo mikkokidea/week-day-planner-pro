@@ -18,6 +18,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+				display: ['"Fraunces"', 'Georgia', 'serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -73,7 +77,12 @@ export default {
 				streak: {
 					DEFAULT: 'hsl(var(--streak))',
 					foreground: 'hsl(var(--streak-foreground))'
-				}
+				},
+				'pillar-sales': 'hsl(var(--pillar-sales))',
+				'pillar-automation': 'hsl(var(--pillar-automation))',
+				'pillar-strategy': 'hsl(var(--pillar-strategy))',
+				'pillar-frog': 'hsl(var(--pillar-frog))',
+				'pillar-life': 'hsl(var(--pillar-life))',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -117,22 +126,31 @@ export default {
 					'100%': { opacity: '0', transform: 'translateY(-40px) scale(1)' }
 				},
 				'check-pop': {
-					'0%': { transform: 'scale(0.8)' },
-					'50%': { transform: 'scale(1.2)' },
+					'0%': { transform: 'scale(1)' },
+					'40%': { transform: 'scale(1.3)' },
 					'100%': { transform: 'scale(1)' }
 				},
 				'frog-bounce': {
 					'0%, 100%': { transform: 'translateY(0)' },
-					'50%': { transform: 'translateY(-3px)' }
+					'50%': { transform: 'translateY(-4px)' }
+				},
+				'frog-eat': {
+					'0%': { transform: 'scale(1) rotate(0deg)', opacity: '1' },
+					'30%': { transform: 'scale(1.3) rotate(-5deg)' },
+					'100%': { transform: 'scale(0) rotate(0deg)', opacity: '0' }
 				},
 				'habit-pop': {
 					'0%': { transform: 'scale(1)' },
-					'50%': { transform: 'scale(1.15)' },
+					'30%': { transform: 'scale(1.25)' },
 					'100%': { transform: 'scale(1)' }
 				},
 				'sheet-up': {
-					'0%': { transform: 'translateY(100%)' },
-					'100%': { transform: 'translateY(0)' }
+					from: { transform: 'translateY(100%)' },
+					to: { transform: 'translateY(0)' }
+				},
+				'streak-flame': {
+					'0%, 100%': { transform: 'scale(1)' },
+					'50%': { transform: 'scale(1.15) rotate(3deg)' }
 				}
 			},
 			animation: {
@@ -144,10 +162,12 @@ export default {
 				'scale-in': 'scale-in 0.3s ease-out',
 				'slide-up': 'slide-up 0.3s ease-out',
 				'points-pop': 'points-pop 0.8s ease-out forwards',
-				'check-pop': 'check-pop 0.3s ease-out',
-				'frog-bounce': 'frog-bounce 0.6s ease-in-out infinite',
-				'habit-pop': 'habit-pop 0.3s ease-out',
-				'sheet-up': 'sheet-up 0.3s ease-out'
+				'check-pop': 'check-pop 0.3s ease',
+				'frog-bounce': 'frog-bounce 2s ease infinite',
+				'frog-eat': 'frog-eat 0.6s ease forwards',
+				'habit-pop': 'habit-pop 0.3s ease',
+				'sheet-up': 'sheet-up 0.3s ease',
+				'streak-flame': 'streak-flame 1s ease infinite'
 			}
 		}
 	},

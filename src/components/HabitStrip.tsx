@@ -25,15 +25,19 @@ export default function HabitStrip({ habits, completedIds, onToggle }: HabitStri
           >
             <div
               className={cn(
-                "w-12 h-12 rounded-full flex items-center justify-center text-xl border-2 transition-all",
+                "w-12 h-12 rounded-xl flex items-center justify-center border-2 transition-all",
                 done
-                  ? "border-success bg-success/10 scale-105"
-                  : "border-muted-foreground/20 bg-muted/50 hover:border-[hsl(var(--brand))]"
+                  ? "border-gold bg-gold text-gold-foreground"
+                  : "border-border bg-muted hover:border-muted-foreground/30"
               )}
             >
-              {habit.emoji}
+              {done ? (
+                <span className="text-lg">✓</span>
+              ) : (
+                <span className="text-xl">{habit.emoji}</span>
+              )}
             </div>
-            <span className="text-[10px] text-muted-foreground truncate max-w-[56px]">
+            <span className="text-[8px] text-muted-foreground truncate max-w-[52px] font-medium">
               {habit.name}
             </span>
           </button>
